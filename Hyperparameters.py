@@ -80,7 +80,8 @@ class Hyperparameters:
         self.ranges[name] = new_range
     def set_value(self, name, value):
         """
-        Sets the raw value for a single hyperparameter
+        Sets the raw value for a single hyperparameter and deactivates it
+        To search over this hyperparameter again, activate() it
 
         Args:
             name(str): The name of the hyperparameter
@@ -88,6 +89,7 @@ class Hyperparameters:
         """
         idx = self.names.index(name)
         self.values[idx] = value
+        self.deactivate(name)
     def sample(self):
         """
         Return a dictionary of hyperparameter values

@@ -8,13 +8,22 @@ from torch import nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from Hyperparameters import Hyperparameters as Hyp
-#TODO: Insert Tensorboard Support
+
+# ###### TODO: README ######
+# In order to work with this template, do the following steps:
+# 1) Implement the GenericDataset class
+# 2) Adjust the train() function to handle how you implemented the Dataset class
+# Optional: Adjust the 'paths' declaration to change where you want the run statistics to be stored
+
 class Trainer:
     """
-    A wrapper 
+    A wrapper class to simplify and make training of PyTorch models easier
 
     Variables:
+        BATCH_SIZE: Size of each batch
         model: Inherits torch.nn.Module
+        device: Determines which device the model and loaded data will be on
+        dtype: The preferred data type for the model and data
         paths['type']: Directories to be accessed/written to
         train_set, val_set, test_set: PyTorch datasets
             train_loader, val_loader, test_loader: and their corresponding loaders
@@ -25,7 +34,7 @@ class Trainer:
         device: The device that is being used
         activations: Dictionary containing layer activations (see single_pass)
     """
-    def __init__(self, model, data_path, device):
+    def __init__(self, model, data_path, device, batch_size=1):
         """
         Create a Trainer object
 
@@ -35,7 +44,7 @@ class Trainer:
                             Contains /train and /val directories
             device(torch.device): The device to use for the model and data
         """
-        self.BATCH_SIZE = 16
+        self.BATCH_SIZE = batch_size
         # Store the PyTorch Model
         self.model = model
         self.device = device
@@ -132,6 +141,10 @@ class Trainer:
             if os.path.isdir(self.paths['runs']):
                 shutil.rmtree(self.paths['runs'])
             os.mkdir(self.paths['runs'])
+        # Wipe/Create the checkpoints directory
+        if os.path.isdir(self.paths['checkpoints']):
+            shutil.rmtree(self.paths['checkpoints'])
+        os.mkdir(self.paths['checkpoints'])
         # For epochs
         for e in range(epochs):
         #   Draw sample from train dataloader
@@ -140,11 +153,12 @@ class Trainer:
             train_loss = []
             for idx, batch in enumerate(self.train_loader):
         #       Perform forward and backward passes
-        # TODO: MODIFY THIS CODE TO MAKE IT GENERIC
+        #       ### TODO: CHOOSE HOW TO REPRESENT DATA ###
                 x, y = batch['x'], batch['y']
-                x = x.to(self.device).type(self.dtype)
-                y = y.to(self.device).type(self.dtype)
-                preds = torch.squeeze(self.model(x))
+                x = x.to(self.device)
+                y = y.to(self.device)
+        #       ### TODO: CHOOSE HOW TO REPRESENT DATA ###                
+                preds = self.model(x)
                 loss = self.criterion(preds, y)
                 train_loss.append(float(loss))
                 self.optimizer.zero_grad()
@@ -154,12 +168,14 @@ class Trainer:
         #   Set network to eval                
             self.model.eval()
             val_loss = []
+        #   Get validation loss
             for idx, batch in enumerate(self.val_loader):
-        #       Perform forward and backward passes
                 x, y = batch['x'], batch['y']
-                x = x.to(self.device).type(self.dtype)
-                y = y.to(self.device).type(self.dtype)
-                preds = torch.squeeze(self.model(x))
+        #       ### TODO: CHOOSE HOW TO REPRESENT DATA ###
+                x = x.to(self.device)
+                y = y.to(self.device)
+        #       ### TODO: CHOOSE HOW TO REPRESENT DATA ###
+                preds = self.model(x)
                 loss = self.criterion(preds, y)
                 val_loss.append(float(loss))
         #   Store histories
@@ -251,15 +267,9 @@ class GenericDataset(Dataset):
         Args:
             root_dir (string): Directory with the data (no sub-directories exist)
         """
-        path = root_dir + '/train.txt'
-        self.data = np.loadtxt(path)
+        ### TODO: CHOOSE HOW TO IMPLEMENT FETCHING DATA ###
     def __len__(self):
-        return len(self.data)
+        return 0
     def __getitem__(self, idx):
         ret_val = {}
-        datapoint = [self.data[idx, 0], self.data[idx, 1]]
-        datapoint = np.array(datapoint)
-        label = int(self.data[idx, 2])
-        ret_val['x'] = datapoint
-        ret_val['y'] = label
         return ret_val

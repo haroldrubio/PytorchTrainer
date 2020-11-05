@@ -85,7 +85,6 @@ class Trainer:
         self.history['loss']['train'] = []
         self.history['loss']['val'] = []
 
-
     def hyp_opt(self, optim_name='Adam', epochs=1, iters=10):
         """
         Repeatedly call train for a short number of epochs to measure the effectiveness of each hyperparameter combination
@@ -136,6 +135,11 @@ class Trainer:
         if self.criterion is None:
             print('ERR: No criterion declared')
             sys.exit(1)
+        # If checkpointing, clear the checkpoint directory
+        if save_every > 0:
+            if os.path.isdir(self.paths['checkpoints']):
+                shutil.rmtree(self.paths['checkpoints'])
+            os.mkdir(self.paths['checkpoints'])
         # If not optimizing hyperparams, reset runs directory
         if opt is None:
             if os.path.isdir(self.paths['runs']):

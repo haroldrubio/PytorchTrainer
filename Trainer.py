@@ -281,8 +281,15 @@ class GenericDataset(Dataset):
             root_dir (string): Directory with the data (no sub-directories exist)
         """
         ### TODO: CHOOSE HOW TO IMPLEMENT FETCHING DATA ###
+        self.data = np.loadtxt(os.path.join(root_dir, 'data.txt'))
+        self.N, self.D = self.data.shape
     def __len__(self):
-        return 0
+        return self.N
     def __getitem__(self, idx):
         ret_val = {}
+        example = self.data[idx]
+        data_point = example[:self.N-1]
+        label = example[self.N-1]
+        ret_val['x'] = data_point
+        ret_val['y'] = label
         return ret_val

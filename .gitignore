@@ -1,4 +1,6 @@
 .vscode/settings.json
 Test.ipynb
 TestTrain.py
+Trainer_Test.py
 __pycache__
+data2

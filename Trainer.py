@@ -3,14 +3,17 @@ import numpy as np
 import shutil
 import os
 import sys
+import math
 from torch.utils.data import Dataset, DataLoader
 from torch import nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from Hyperparameters import Hyperparameters as Hyp
+from tqdm import tqdm
 
 # ###### TODO: README ######
 # In order to work with this template, do the following steps:
+# 0) Enter in the size of the training/validation/test set as constants
 # 1) Implement the GenericDataset class
 # 2) Adjust the train() function to handle how you implemented the Dataset class
 # Optional: Adjust the 'paths' declaration to change where you want the run statistics to be stored
@@ -45,6 +48,9 @@ class Trainer:
             device(torch.device): The device to use for the model and data
         """
         self.BATCH_SIZE = batch_size
+        self.NUM_TRAIN = 1000
+        self.NUM_VAL = 200
+        self.NUM_TEST = 100
         # Store the PyTorch Model
         self.model = model
         self.device = device
@@ -155,7 +161,8 @@ class Trainer:
         #   Set network to train
             self.model.train()
             train_loss = []
-            for idx, batch in enumerate(self.train_loader):
+            for idx, batch in tqdm(enumerate(self.train_loader), total=math.ceil(self.NUM_TRAIN/self.BATCH_SIZE),
+                                        desc=f'Training Epoch {e}', unit=' Batches'):
         #       Perform forward and backward passes
                 forward_pass = self.pass_batch(batch)
                 loss, preds = forward_pass['loss'], forward_pass['preds']
@@ -168,7 +175,8 @@ class Trainer:
             self.model.eval()
             val_loss = []
         #   Get validation loss
-            for idx, batch in enumerate(self.val_loader):
+            for idx, batch in tqdm(enumerate(self.val_loader), total=math.ceil(self.NUM_VAL/self.BATCH_SIZE),
+                                            desc=f'Validating Epoch {e}', unit=' Batches'):
                 forward_pass = self.pass_batch(batch)
                 loss, preds = forward_pass['loss'], forward_pass['preds']
                 val_loss.append(float(loss))

@@ -157,13 +157,8 @@ class Trainer:
             train_loss = []
             for idx, batch in enumerate(self.train_loader):
         #       Perform forward and backward passes
-        #       ### TODO: CHOOSE HOW TO REPRESENT DATA ###
-                x, y = batch['x'], batch['y']
-                x = x.to(self.device)
-                y = y.to(self.device)
-        #       ### TODO: CHOOSE HOW TO REPRESENT DATA ###                
-                preds = self.model(x)
-                loss = self.criterion(preds, y)
+                forward_pass = self.pass_batch(batch)
+                loss, preds = forward_pass['loss'], forward_pass['preds']
                 train_loss.append(float(loss))
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -174,13 +169,8 @@ class Trainer:
             val_loss = []
         #   Get validation loss
             for idx, batch in enumerate(self.val_loader):
-                x, y = batch['x'], batch['y']
-        #       ### TODO: CHOOSE HOW TO REPRESENT DATA ###
-                x = x.to(self.device)
-                y = y.to(self.device)
-        #       ### TODO: CHOOSE HOW TO REPRESENT DATA ###
-                preds = self.model(x)
-                loss = self.criterion(preds, y)
+                forward_pass = self.pass_batch(batch)
+                loss, preds = forward_pass['loss'], forward_pass['preds']
                 val_loss.append(float(loss))
         #   Store histories
             self.history['loss']['train'].append(np.mean(train_loss))
@@ -195,6 +185,27 @@ class Trainer:
         #       Check if saving
                 if save_every > 0 and e % save_every == 0:
                     self.store_checkpoint(e)
+    def pass_batch(self, batch):
+        """
+        Passes a batch through the model and returns the required statistics
+
+        Args:
+            batch: A custom-formatted object that contains the data necessary for the forward and backward passes
+                   Usually consists of a dict\n
+        Returns: ret_dict{dict}: A dictionary containing values to be returned from a forward pass
+        """
+        ret_dict = {}
+        x, y = batch['x'], batch['y']
+        ### TODO: CHOOSE HOW TO REPRESENT DATA ###
+        x = x.to(self.device)
+        y = y.to(self.device)
+        ### TODO: CHOOSE HOW TO REPRESENT DATA ###
+        preds = self.model(x)
+        loss = self.criterion(preds, y)
+        # Define values of ret_dict
+        ret_dict['preds'] = preds
+        ret_dict['loss'] = loss
+        return ret_dict
     def set_hyperparameters(self, hyp):
         """
         Set the local Hyperparameters object (see: Hyperparameters.py)
@@ -221,9 +232,7 @@ class Trainer:
         elif name == 'AdamW':
             self.optimizer = optim.AdamW(self.model.parameters(), **params)
         elif name == 'SGD':
-            self.optimizer = optim.SGD(self.model.parameters(), **params)
-
-
+            self.optimizer = optim.SGD(self.model.parameters(), **params)   
     def set_criterion(self, name):
         """
         Set the local loss function as the desired loss function

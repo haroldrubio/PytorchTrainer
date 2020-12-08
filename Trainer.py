@@ -160,29 +160,9 @@ class Trainer:
         os.mkdir(self.paths['checkpoints'])
         # For epochs
         for e in range(epochs):
-        #   Draw sample from train dataloader
-        #   Set network to train
-            self.model.train()
-            train_loss = []
-            for idx, batch in tqdm(enumerate(self.train_loader), total=math.ceil(self.NUM_TRAIN/self.BATCH_SIZE),
-                                        desc=f'Training Epoch {e}', unit=' Batches'):
-        #       Perform forward and backward passes
-                forward_pass = self.pass_batch(batch)
-                loss, preds = forward_pass['loss'], forward_pass['preds']
-                train_loss.append(float(loss))
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
-        #   Draw sample from val dataloader
-        #   Set network to eval                
-            self.model.eval()
-            val_loss = []
-        #   Get validation loss
-            for idx, batch in tqdm(enumerate(self.val_loader), total=math.ceil(self.NUM_VAL/self.BATCH_SIZE),
-                                            desc=f'Validating Epoch {e}', unit=' Batches'):
-                forward_pass = self.pass_batch(batch)
-                loss, preds = forward_pass['loss'], forward_pass['preds']
-                val_loss.append(float(loss))
+        #   Perform train and validation steps
+            train_loss = self.train_step(e)
+            val_loss = self.val_step(e)
         #   Store histories
             self.history['loss']['train'].append(np.mean(train_loss))
             self.history['loss']['val'].append(np.mean(val_loss))
@@ -199,6 +179,66 @@ class Trainer:
         #       Check if saving
                 if save_every > 0 and e % save_every == 0:
                     self.store_checkpoint(e)
+    def train_step(self, epoch):
+        """
+        Helper function to facilitate the training steps of an epoch
+
+        Args:
+            epoch(int): The current epoch number
+        Returns: train_loss(float): The average loss from an epoch of training
+        """
+        #   Draw sample from train dataloader
+        #   Set network to train
+        self.model.train()
+        train_loss = []
+        for idx, batch in tqdm(enumerate(self.train_loader), total=math.ceil(self.NUM_TRAIN/self.BATCH_SIZE),
+                                    desc=f'Training Epoch {epoch}', unit=' Batches'):
+        #   Perform forward and backward passes
+            forward_pass = self.pass_batch(batch)
+            loss, preds = forward_pass['loss'], forward_pass['preds']
+            train_loss.append(float(loss))
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+        return np.mean(train_loss)
+    def val_step(self, epoch):
+        """
+        Helper function to facilitate the validation steps of an epoch
+
+        Args:
+            epoch(int): The current epoch number
+        Returns: val_loss(float): The average loss from an epoch of training
+        """
+        val_loss = []
+        #   Set network to eval                
+        self.model.eval()
+        with torch.no_grad():
+            #   Get validation loss
+            for idx, batch in tqdm(enumerate(self.val_loader), total=math.ceil(self.NUM_VAL/self.BATCH_SIZE),
+                                            desc=f'Validating Epoch {epoch}', unit=' Batches'):
+                forward_pass = self.pass_batch(batch)
+                loss, preds = forward_pass['loss'], forward_pass['preds']
+                val_loss.append(float(loss))
+        return np.mean(val_loss)
+    def test_step(self, epoch):
+        """
+        Helper function to facilitate the testing steps of an epoch
+
+        Args:
+            epoch(int): The current epoch number
+        Returns: loss(float): The average loss from an epoch of training
+        """
+        test_loss = []
+        #   Set network to eval                
+        self.model.eval()
+        with torch.no_grad():
+            #   Get validation loss
+            for idx, batch in tqdm(enumerate(self.test_loader), total=math.ceil(self.NUM_VAL/self.BATCH_SIZE),
+                                            desc=f'Validating Epoch {epoch}', unit=' Batches'):
+                forward_pass = self.pass_batch(batch)
+                loss, preds = forward_pass['loss'], forward_pass['preds']
+                test_loss.append(float(loss))
+        return np.mean(test_loss)
     def pass_batch(self, batch):
         """
         Passes a batch through the model and returns the required statistics
@@ -277,13 +317,6 @@ class Trainer:
         Returns: model(nn.Module): The interally stored model
         """
         return self.model
-    def validate(self):
-        """
-        Pass the validation set through the PyTorch model
-
-        Returns: preds(torch.tensor): A tensor of the validation predictions of the model
-        """
-        pass
     def store_checkpoint(self, epoch_number):
         """
         Write out a file for the current weights and state of the optimizer

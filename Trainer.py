@@ -141,6 +141,8 @@ class Trainer:
             opt(dict): If not None, contains a dictionary of optimizer
                        hyperparameters to use
         """
+        # Check for hyperparameter optimization
+        is_hyp_opt = opt is not None
         # Check for existing criterion
         if self.criterion is None:
             print('ERR: No criterion declared')
@@ -161,17 +163,14 @@ class Trainer:
         os.mkdir(self.paths['checkpoints'])
         # For epochs
         for e in range(epochs):
-        #   Perform train step
-            train_loss = self.train_step(e)
-            self.history['loss']['train'].append(np.mean(train_loss))
-        #   If not optimizing hyperparameters, perform test step
-            if opt is None:
-                test_loss = self.test_step(e)
-                self.history['loss']['test'].append(np.mean(test_loss))
-        #   Otherwise, perform validation step
-            else:
-                val_loss = self.val_step(e)
-                self.history['loss']['val'].append(np.mean(val_loss))
+        #   If first epoch, get initial evaluations
+            if e == 0:
+                train_loss = self.evaluate_step(e-1, self.train_loader, self.NUM_TRAIN)
+                self.evaluation(e-1, is_hyp_opt)
+        #   Perform network training
+            self.training(e)
+        #   Perform network evaluation
+            self.evaluation(e, is_hyp_opt)
         #   Perform scheduler steps
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -179,12 +178,39 @@ class Trainer:
             if opt is None:
         #       Check if updating
                 if update_every > 0 and e % update_every == 0:
+                    train_loss, val_loss = self.history['loss']['train'][e], self.history['loss']['val'][e]
                     writer = SummaryWriter()
-                    writer.add_scalars('Loss', {'train': np.mean(train_loss), 'val': np.mean(val_loss)}, e)
+                    writer.add_scalars('Loss', {'train': train_loss, 'val': val_loss}, e)
                     writer.close()
         #       Check if saving
                 if save_every > 0 and e % save_every == 0:
                     self.store_checkpoint(e)
+    def training(self, epoch):
+        """
+        Helper function to further abstract the training step
+        Performs training step and necessary metric storage
+
+        Args:
+            epoch(int): The current epoch number
+        """
+        train_loss = self.train_step(epoch)
+        self.history['loss']['train'].append(train_loss)
+    def evaluation(self, epoch, hyp_opt=False):
+        """
+        Helper function to make the choice of whether to evaluate the validation set or the test set
+
+        Args:
+            epoch(int): The current epoch number
+            hyp_opt(bool): An indicator of whether or not hyperparameters are being optimized
+        """
+        # If not optimizing hyperparameters, perform test step
+        if hyp_opt == False:
+            test_loss = self.test_step(epoch)
+            self.history['loss']['test'].append(np.mean(test_loss))
+        # Otherwise, perform validation step
+        else:
+            val_loss = self.val_step(epoch)
+            self.history['loss']['val'].append(np.mean(val_loss))
     def train_step(self, epoch):
         """
         Helper function to facilitate the training steps of an epoch
@@ -193,7 +219,8 @@ class Trainer:
             epoch(int): The current epoch number
         Returns: train_loss(float): The average loss from an epoch of training
         """
-        #   Draw sample from train dataloader
+        #   Scale epoch to start at 1
+        epoch += 1
         #   Set network to train
         self.model.train()
         train_loss = []
@@ -202,10 +229,11 @@ class Trainer:
         #   Perform forward and backward passes
             forward_pass = self.pass_batch(batch)
             loss, preds = forward_pass['loss'], forward_pass['preds']
-            train_loss.append(float(loss))
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+        #   Store metrics
+            train_loss.append(float(loss))
         return np.mean(train_loss)
     def val_step(self, epoch):
         """
@@ -215,17 +243,7 @@ class Trainer:
             epoch(int): The current epoch number
         Returns: val_loss(float): The average loss from an epoch of training
         """
-        val_loss = []
-        #   Set network to eval                
-        self.model.eval()
-        with torch.no_grad():
-            #   Get validation loss
-            for idx, batch in tqdm(enumerate(self.val_loader), total=math.ceil(self.NUM_VAL/self.BATCH_SIZE),
-                                            desc=f'Validating Epoch {epoch}', unit=' Batches'):
-                forward_pass = self.pass_batch(batch)
-                loss, preds = forward_pass['loss'], forward_pass['preds']
-                val_loss.append(float(loss))
-        return np.mean(val_loss)
+        return self.evaluate_step(epoch, self.val_loader, self.NUM_VAL)
     def test_step(self, epoch):
         """
         Helper function to facilitate the testing steps of an epoch
@@ -234,17 +252,32 @@ class Trainer:
             epoch(int): The current epoch number
         Returns: loss(float): The average loss from an epoch of training
         """
-        test_loss = []
+        return self.evaluate_step(epoch, self.test_loader, self.NUM_TEST)
+    def evaluate_step(self, epoch, data_loader, num_examples):
+        """
+        Helper function as a general way of evaluating a dataset
+
+        Args:
+            epoch(int): The current epoch number
+            data_loader(torch.utils.dataset.DataLoader): A PyTorch dataloader
+            num_examples(int): The number of examples covered by the dataloader
+        Returns: loss(float): The average loss from an epoch of evaluation
+        """
+        #   Scale epoch to start at 1
+        epoch += 1
+        eval_loss = []
         #   Set network to eval                
         self.model.eval()
         with torch.no_grad():
-            #   Get validation loss
-            for idx, batch in tqdm(enumerate(self.test_loader), total=math.ceil(self.NUM_TEST/self.BATCH_SIZE),
-                                            desc=f'Testing Epoch {epoch}', unit=' Batches'):
+        #   Get validation loss
+            for idx, batch in tqdm(enumerate(data_loader), total=math.ceil(num_examples/self.BATCH_SIZE),
+                                            desc=f'Evaluating Epoch {epoch}', unit=' Batches'):
+        #       Perform forward and backward passes
                 forward_pass = self.pass_batch(batch)
                 loss, preds = forward_pass['loss'], forward_pass['preds']
-                test_loss.append(float(loss))
-        return np.mean(test_loss)
+        #       Store metrics
+                eval_loss.append(float(loss))
+        return np.mean(eval_loss)
     def pass_batch(self, batch):
         """
         Passes a batch through the model and returns the required statistics

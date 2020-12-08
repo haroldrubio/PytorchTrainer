@@ -288,10 +288,11 @@ class Trainer:
         Returns: ret_dict{dict}: A dictionary containing values to be returned from a forward pass
         """
         ret_dict = {}
+        ### TODO: CHOOSE HOW TO REPRESENT DATA ###
         x, y = batch['x'], batch['y']
         ### TODO: CHOOSE HOW TO REPRESENT DATA ###
+        # Move tensors to device and optionally enforce data types
         x, y = x.to(self.device).type(self.dtype), y.to(self.device).type(torch.long)
-        ### TODO: CHOOSE HOW TO REPRESENT DATA ###
         preds = self.model(x)
         loss = self.criterion(preds, y)
         # Define values of ret_dict

@@ -33,10 +33,10 @@ class GenericDataset(Dataset):
     def __getitem__(self, idx):
         ret_val = {}
         example = self.data[idx]
-        data_point = torch.tensor(example[:self.D-1])
-        label = torch.tensor(example[self.D-1])
-        ret_val['x'] = data_point
-        ret_val['y'] = label
+        data_point = torch.tensor(example[:self.D-1]) #<---- If needed, transform data into tensors
+        label = torch.tensor(example[self.D-1])       #<---- 
+        ret_val['x'] = data_point #<---- Tensors for a given key must always have the same dimension
+        ret_val['y'] = label      #<---- See above
         return ret_val
 ```
 2. **Use a PyTorch built-in dataset function** ***(optional)***\

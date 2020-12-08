@@ -33,6 +33,7 @@ class Trainer:
         hyperparams: Hyperparameter object to sample hyperparams
         optimizer: An instance of torch.optim.Optimizer
         criterion: An instance of torch.nn.Module corresponding to a loss function
+        scheduler: An instance of torch.optim.lr_scheduler
         history['type']['set']: Dictionary for loss/acc histories across datasets
         device: The device that is being used
         activations: Dictionary containing layer activations (see single_pass)
@@ -72,9 +73,10 @@ class Trainer:
         self.test_loader = DataLoader(self.test_set, batch_size=self.BATCH_SIZE, shuffle=True)
         # Initialize a Hyperparameter object
         self.hyp = None
-        # Define None objects for criterion and optimizer
+        # Define None objects for criterion, optimizer, and scheduler
         self.optimizer = None
         self.criterion = None
+        self.scheduler = None
         # Define dictionary of empty lists for histories
         self.history = {}
         self.init_history()

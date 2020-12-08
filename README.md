@@ -61,5 +61,14 @@ def pass_batch(self, batch):
     preds = self.model(x)
 ```
 ## Interpreting Results
-By default, the trainer only keeps track of training and validation/testing loss as a function of epoch. This can be adjusted by adding new entries into the history dictionary in the `init_history` function. For interpretation, extract the `history` variable and access the data using the keys in `init_history`.\
+By default, the trainer only keeps track of training and validation/testing loss as a function of epoch.\
+This can be adjusted by adding new entries into the history dictionary in the `init_history` function and adding corresponding code into either `train_step` or `evaluate_step`:
+```python
+# Perform forward and backward passes
+  forward_pass = self.pass_batch(batch)
+  loss, preds = forward_pass['loss'], forward_pass['preds']
+# Store metrics <-- additional measurements get appended after passing through the model
+  eval_loss.append(float(loss))
+```
+For interpretation, extract the `history` variable and access the data using the keys in `init_history`.\
 To make inferences, extract the model and perform a forward pass. Infrastructure for inference is not supported by this program

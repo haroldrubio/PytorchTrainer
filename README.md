@@ -15,7 +15,9 @@ out the task and deals with the raw model.
 1. Choose how to represent your data\
 In order to use PyTorch dataloaders, you must implement a dataset class that is able to retrieve a single item using the `__getitem__` function.\
 An example where the data is represented in a single text document and stored into memory all at once is given below.\
-The data here consists of `N` rows with each row containing a 2D vector followed by a class label.
+The data here consists of `N` rows with each row containing a 2D vector followed by a class label.\
+This form of dataset works by being able to get the number of examples in the dataset, and returning an abstract item. Use a dictionary to include multiple objects for each item.\
+*Note: The keys used in the* `__getitem__` *function are the same keys used when accessing a batch returned from an enumerated dataloader.*
 ```python
 class GenericDataset(Dataset):
     def __init__(self, root_dir):

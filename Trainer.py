@@ -4,6 +4,7 @@ import shutil
 import os
 import sys
 import math
+import Metrics
 from torch.utils.data import Dataset, DataLoader
 from torch import nn
 import torch.optim as optim
@@ -21,7 +22,7 @@ from tqdm import tqdm
 class Trainer:
     """
     A wrapper class to simplify and make training of PyTorch models easier
-
+    
     Variables:
         BATCH_SIZE: Size of each batch
         model: Inherits torch.nn.Module

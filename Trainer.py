@@ -293,6 +293,7 @@ class Trainer:
         ### TODO: CHOOSE HOW TO REPRESENT DATA ###
         # Move tensors to device and optionally enforce data types
         x, y = x.to(self.device).type(self.dtype), y.to(self.device).type(torch.long)
+        # Pass through the model
         preds = self.model(x)
         loss = self.criterion(preds, y)
         # Define values of ret_dict

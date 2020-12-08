@@ -95,12 +95,12 @@ class Trainer:
         self.history['loss']['val'] = []
         self.history['loss']['test'] = []
 
-    def hyp_opt(self, optim_name='Adam', epochs=1, iters=10):
+    def hyp_opt(self, optimizer_class, epochs=1, iters=10):
         """
         Repeatedly call train for a short number of epochs to measure the effectiveness of each hyperparameter combination
 
         Args:
-            optim_name(str): The name of the optimizer to use
+            optimizer_name(torch.optim): The class of the optimizer to use
             epochs(int): The number of epochs to train for per combination
             iters(int): Number of times to sample hyperparameters
         """
@@ -116,7 +116,7 @@ class Trainer:
             # Sample hyperparameters
             sample = self.hyp.sample()
             # Set the optimizer
-            self.set_optimizer(optim_name, sample)
+            self.set_optimizer(optimizer_class, sample)
             # Train a model
             self.train(epochs=epochs, opt=sample)
             # Write to TensorBoard
@@ -274,25 +274,16 @@ class Trainer:
         -Set the local Hyperparameters object
         """
         self.hyp = hyp
-    def set_optimizer(self, name, params):
+    def set_optimizer(self, optimizer_class, params):
         """
-        Given the name of the optimizer, and a dictionary of parameters, set the local optimizer as the desired optimizer
-
+        Given the class of a PyTorch optimizer, and a dictionary of parameters, set the local optimizer
         Args:
-            name(str): The name of the optimizer to be used
+            optimizer_class(torch.optim): The class of a desired optimizer
             params(dict): Dictionary of optimizer hyperparameters (hyp: value)
-        Parse name into different optimizers and set to the class variable
         """
         self.model.to(device=self.device)
-        if name == 'RMSprop':
-            self.optimizer = optim.RMSprop(self.model.parameters(), **params)
-        elif name == 'Adam':
-            self.optimizer = optim.Adam(self.model.parameters(), **params)
-        elif name == 'AdamW':
-            self.optimizer = optim.AdamW(self.model.parameters(), **params)
-        elif name == 'SGD':
-            self.optimizer = optim.SGD(self.model.parameters(), **params)
-    def set_scheduler(self, scheduler_name, **kwargs):
+        self.optimizer = optimizer_class(self.model.parameters(), **params)
+    def set_scheduler(self, scheduler_class, **kwargs):
         """
         Sets a local scheduler - requires the optimizer to have been set
 
@@ -300,22 +291,16 @@ class Trainer:
             scheduler_class(torch.optim.lr_scheduler): A scheduler class to be instantiated with the passed in args
             params(dict): Dictionary of scheduler hyperparameters (hyp: value)
         """
-        self.scheduler = scheduler_name(self.optimizer, **kwargs)
+        self.scheduler = scheduler_class(self.optimizer, **kwargs)
 
-    def set_criterion(self, name):
+    def set_criterion(self, criterion_class):
         """
         Set the local loss function as the desired loss function
 
         Args:
-            name(str): The name of the loss function to be used
-        Parse name into different losses and set to the class variable
+            criterion_class(torch.nn): An nn.Module class to be instantiated as the target task loss
         """
-        if name == 'CE':
-            self.criterion = nn.CrossEntropyLoss()
-        elif name == 'BCE':
-            self.criterion = nn.BCEWithLogitsLoss()
-        elif name == 'MSE':
-            self.criterion = nn.MSELoss()
+        self.criterion = criterion_class()
     def get_model(self):
         """
         Get the internal PyTorch model

@@ -49,9 +49,9 @@ class Trainer:
             device(torch.device): The device to use for the model and data
         """
         self.BATCH_SIZE = batch_size
-        self.NUM_TRAIN = 1000
-        self.NUM_VAL = 200
-        self.NUM_TEST = 100
+        self.NUM_TRAIN = 10000
+        self.NUM_VAL = 5000
+        self.NUM_TEST = 5000
         # Store the PyTorch Model
         self.model = model
         self.device = device
@@ -241,7 +241,17 @@ class Trainer:
         elif name == 'AdamW':
             self.optimizer = optim.AdamW(self.model.parameters(), **params)
         elif name == 'SGD':
-            self.optimizer = optim.SGD(self.model.parameters(), **params)   
+            self.optimizer = optim.SGD(self.model.parameters(), **params)
+    def set_scheduler(self, scheduler_name, **kwargs):
+        """
+        Sets a local scheduler - requires the optimizer to have been set
+
+        Args:
+            scheduler_class(torch.optim.lr_scheduler): A scheduler class to be instantiated with the passed in args
+            params(dict): Dictionary of scheduler hyperparameters (hyp: value)
+        """
+        self.scheduler = scheduler_name(self.optimizer, kwargs)
+
     def set_criterion(self, name):
         """
         Set the local loss function as the desired loss function

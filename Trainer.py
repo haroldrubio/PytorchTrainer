@@ -185,6 +185,9 @@ class Trainer:
         #   Store histories
             self.history['loss']['train'].append(np.mean(train_loss))
             self.history['loss']['val'].append(np.mean(val_loss))
+        #   Perform scheduler steps
+            if self.scheduler is not None:
+                self.scheduler.step()
         #   If not optimizing hyperparams
             if opt is None:
         #       Check if updating
@@ -250,7 +253,7 @@ class Trainer:
             scheduler_class(torch.optim.lr_scheduler): A scheduler class to be instantiated with the passed in args
             params(dict): Dictionary of scheduler hyperparameters (hyp: value)
         """
-        self.scheduler = scheduler_name(self.optimizer, kwargs)
+        self.scheduler = scheduler_name(self.optimizer, **kwargs)
 
     def set_criterion(self, name):
         """

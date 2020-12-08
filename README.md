@@ -4,7 +4,7 @@ A Template For Hyperparameter Optimization and Training PyTorch Models
 Across my various machine learning projects and classes, I found myself re-writing the same infrastructure to train some deep learning model. This repository abstracts
 out the task and deals with the raw model. 
 ## How To Use
-0. Obtain the number of examples in your train-dev-test splits and enter them in the `__init__` function of `Trainer` as shown here:
+**0. Obtain the number of examples in your train-dev-test splits and enter them in the** `__init__` **function of** `Trainer` **as shown here*:
 
 ```python
   self.BATCH_SIZE = batch_size
@@ -12,7 +12,7 @@ out the task and deals with the raw model.
   self.NUM_VAL = 5000
   self.NUM_TEST = 5000
 ```
-1. Choose how to represent your data\
+1. **Choose how to represent your data**\
 In order to use PyTorch dataloaders, you must implement a dataset class that is able to retrieve a single item using the `__getitem__` function.\
 An example where the data is represented in a single text document and stored into memory all at once is given below.\
 The data here consists of `N` rows with each row containing a 2D vector followed by a class label.\
@@ -39,7 +39,7 @@ class GenericDataset(Dataset):
         ret_val['y'] = label
         return ret_val
 ```
-2. Use a PyTorch built-in dataset function **(optional)**\
+2. **Use a PyTorch built-in dataset function** ***(optional)***\
 PyTorch provides several tools in its built-in libraries for handling several well known datasets.\
 The following example uses the `ImageFolder` class from `torchvision.datasets` to construct a dataset class. This modification would be placed in the `__init__` function of Trainer.
 ```python
@@ -49,7 +49,7 @@ The following example uses the `ImageFolder` class from `torchvision.datasets` t
   self.train_set = datasets.ImageFolder(self.paths['train'], pre_process)
   self.train_loader = DataLoader(self.train_set, batch_size=self.BATCH_SIZE, shuffle=True)
 ```
-3. Adjust the forward pass\
+3. **Adjust the forward pass**\
 Your dataset may handle data differently or you may wish to include more things in each batch depending on the dataset implementation.\
 In order to compensate for these changes, adjust the `pass_batch` function to parse the batch dict.
 ```python

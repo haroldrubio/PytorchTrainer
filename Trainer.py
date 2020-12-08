@@ -93,6 +93,7 @@ class Trainer:
         self.history['loss'] = {}
         self.history['loss']['train'] = []
         self.history['loss']['val'] = []
+        self.history['loss']['test'] = []
 
     def hyp_opt(self, optim_name='Adam', epochs=1, iters=10):
         """
@@ -160,12 +161,17 @@ class Trainer:
         os.mkdir(self.paths['checkpoints'])
         # For epochs
         for e in range(epochs):
-        #   Perform train and validation steps
+        #   Perform train step
             train_loss = self.train_step(e)
-            val_loss = self.val_step(e)
-        #   Store histories
             self.history['loss']['train'].append(np.mean(train_loss))
-            self.history['loss']['val'].append(np.mean(val_loss))
+        #   If not optimizing hyperparameters, perform test step
+            if opt is None:
+                test_loss = self.test_step(e)
+                self.history['loss']['test'].append(np.mean(test_loss))
+        #   Otherwise, perform validation step
+            else:
+                val_loss = self.val_step(e)
+                self.history['loss']['val'].append(np.mean(val_loss))
         #   Perform scheduler steps
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -233,8 +239,8 @@ class Trainer:
         self.model.eval()
         with torch.no_grad():
             #   Get validation loss
-            for idx, batch in tqdm(enumerate(self.test_loader), total=math.ceil(self.NUM_VAL/self.BATCH_SIZE),
-                                            desc=f'Validating Epoch {epoch}', unit=' Batches'):
+            for idx, batch in tqdm(enumerate(self.test_loader), total=math.ceil(self.NUM_TEST/self.BATCH_SIZE),
+                                            desc=f'Testing Epoch {epoch}', unit=' Batches'):
                 forward_pass = self.pass_batch(batch)
                 loss, preds = forward_pass['loss'], forward_pass['preds']
                 test_loss.append(float(loss))

@@ -39,7 +39,7 @@ class GenericDataset(Dataset):
 ```
 2. Use a PyTorch built-in dataset function **(optional)**\
 PyTorch provides several tools in its built-in libraries for handling several well known datasets.\
-The following example uses the `ImageFolder` class from `torchvision.datasets` to construct a dataset class. This modification would be placed in the `__init__` function of T rainer.
+The following example uses the `ImageFolder` class from `torchvision.datasets` to construct a dataset class. This modification would be placed in the `__init__` function of Trainer.
 ```python
   from torchvision import datasets
   from torch.utils.data import Dataloader

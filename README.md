@@ -4,7 +4,7 @@ A Template For Hyperparameter Optimization and Training PyTorch Models
 Across my various machine learning projects and classes, I found myself re-writing the same infrastructure to train some deep learning model. This repository abstracts
 out the task and deals with the raw model. 
 ## How To Use
-**0. Obtain the number of examples in your train-dev-test splits and enter them in the** `__init__` **function of** `Trainer` **as shown here*:
+0. **Obtain the number of examples in your train-dev-test splits and enter them in the** `__init__` **function of** `Trainer` **as shown here*:
 
 ```python
   self.BATCH_SIZE = batch_size

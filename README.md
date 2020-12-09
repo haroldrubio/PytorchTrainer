@@ -91,7 +91,7 @@ from Hyperparameters import Hyperparameters as Hyp
   tr.set_hyperparameters(optim_params)
 ```
 Next, you want to set the loss function for your target task, and set and prime your optimizer and scheduler, if you are using a scheduler. Afterwards, prime your model. The `prime` functions exist to give you the ability to set hyperparameters that you would want to exist within every trained model.\
-Setting static hyperparameters (those not sampled randomly) by setting the value in a `Hyperparameters`, like with momentum above, and passing the argument directly to the `prime` function are equivalent - but you **cannot** use both. In this example, momentum can also be set by `tr.prime_optimizer(momentum=0.9)`.\
+Setting static hyperparameters (those not sampled randomly) by setting the value in a `Hyperparameters`, like with momentum above, and passing the argument directly to the `prime` function are equivalent - but you **cannot** use both. In this example, momentum can alternatively be set by `tr.prime_optimizer(momentum=0.9)`.\
 **(NOTE: `prime` functions MUST be called, even without setting static hyperparameters)**
 ```python
   tr.set_criterion(CrossEntropyLoss)                           #<---- Using Cross Entropy Loss
@@ -103,7 +103,7 @@ Setting static hyperparameters (those not sampled randomly) by setting the value
 ```
 And now you're ready to search for hyperparameters! Just call `tr.hyp_opt(epochs=5, iters=20)` if you want to sample 20 different hyperparameters, with each model training for 5 epochs. To visualize your results, please refer to the TensorBoard results in the `hyp` directory by using the following command in the Anaconda prompt when in the project directory: `tensorboard --logdir=hyp`
 ### Training
-For this example, suppose the best learning rate found is `1e-3`. You can choose to train using either a `Hyperparameters` object with set values, or pass the found parameters directly into the `prime` functions.
+For this example, suppose the best learning rate found is `1e-3`. You can choose to train using either a `Hyperparameters` object with set values, or pass the found parameters directly into the `prime` functions.\
 **(NOTE: If an optimizer/scheduler/model requires positional arguments, these MUST be passed into the `prime` function)**
 ```python
   tr.prime_optimizer(lr=1e-3, momentum=0.9)                                      

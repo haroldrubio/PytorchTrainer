@@ -3,7 +3,7 @@ A Template For Hyperparameter Optimization and Training PyTorch Models
 
 Across my various machine learning projects and classes, I found myself re-writing the same infrastructure to train some deep learning model. This repository abstracts
 out the task and deals with the raw model. 
-## How To Use
+## Setting Up Trainer.py
 0. **Obtain the number of examples in your train-dev-test splits and enter them in the** `__init__` **function of** `Trainer` **as shown here*:
 
 ```python
@@ -60,6 +60,57 @@ def pass_batch(self, batch):
     # Pass through the model
     preds = self.model(x)
 ```
+## Training Models
+### Hyperparameter Optimization
+So you have your model and your data defined and you're ready to start searching for hyperparameters. Use a `Hyperparameters` object to either store static valued hyperparameters or sample from a random distribution. For example, I have the following model with a single hidden layer:
+```python
+import torch.nn.functional as F
+import torch.nn as nn
+class Net(nn.Module):
+    def __init__(self, input_size=2, hidden_size=1, target_length=1):
+        super().__init__()
+        self.h = nn.Linear(input_size, hidden_size)
+        self.o = nn.Linear(hidden_size, target_length)
+
+    def forward(self, x):
+        x = self.h(x)
+        x = F.relu(x)
+        x = self.o(x)
+        return x
+```
+and I want to search over learning rates between `1e-5` and `1e-1` using a momentum of 0.9 with SGD as my optimizer. I would do this by creating a `Hyperparameters` object, registering the hyperparameters and passing it to my trainer instance:\
+**(NOTE: The names of your hyperparameters MUST match the keyword arguments for your selected optimizer)**
+```python
+from Trainer import Trainer
+from Hyperparameters import Hyperparameters as Hyp
+  tr = Trainer(net,...)
+  optim_params = Hyp()
+  optim_params.register(['lr', 'momentum'])
+  optim_params.set_range('lr', -5, -1)
+  optim_params.set_value('momentum', 0.9)
+  tr.set_hyperparameters(optim_params)
+```
+Next, you want to set the loss function for your target task, and set and prime your optimizer and scheduler, if you are using a scheduler. Afterwards, prime your model. The `prime` functions exist to give you the ability to set hyperparameters that you would want to exist within every trained model.\
+Setting static hyperparameters (those not sampled randomly) by setting the value in a `Hyperparameters`, like with momentum above, and passing the argument directly to the `prime` function are equivalent - but you **cannot** use both. In this example, momentum can alternatively be set by `tr.prime_optimizer(momentum=0.9)`.\
+**(NOTE: `prime` functions MUST be called, even without setting static hyperparameters)**
+```python
+  tr.set_criterion(CrossEntropyLoss)                           #<---- Using Cross Entropy Loss
+  tr.set_optimizer(SGD)                                        #<---- Optimizing using SGD
+  tr.set_scheduler(StepLR)                                     #<---- Scaling the learning rate every few epochs
+  tr.prime_optimizer()                                         #<---- All optimizer params are being handled by optim_params
+  tr.prime_scheduler(5, gamma=0.1)                             #<---- Every 5 epochs, scale the learning rate by 0.1
+  tr.prime_model(input_size=2, hidden_size=5, target_length=2) #<---- Set the dimensionalities of the network
+```
+And now you're ready to search for hyperparameters! Just call `tr.hyp_opt(epochs=5, iters=20)` if you want to sample 20 different hyperparameters, with each model training for 5 epochs. To visualize your results, please refer to the TensorBoard results in the `hyp` directory by using the following command in the Anaconda prompt when in the project directory: `tensorboard --logdir=hyp`
+### Training
+For this example, suppose the best learning rate found is `1e-3`. You can choose to train using either a `Hyperparameters` object with set values, or pass the found parameters directly into the `prime` functions.\
+**(NOTE: If an optimizer/scheduler/model requires positional arguments, these MUST be passed into the `prime` function)**
+```python
+  tr.prime_optimizer(lr=1e-3, momentum=0.9)                                      
+  tr.prime_scheduler(5, gamma=0.1)                             
+  tr.prime_model(input_size=2, hidden_size=5, target_length=2) 
+```
+Now just train using `tr.train(epochs=50, update_every=1, save_every=5)`. This will train the model for 50 epochs, saving checkpoints every 5 epochs and writing TensorBoard files for the loss every epoch.
 ## Interpreting Results
 By default, the trainer only keeps track of training and validation/testing loss as a function of epoch.\
 This can be adjusted by adding new entries into the history dictionary in the `init_history` function and adding corresponding code into either `train_step` or `evaluate_step`:

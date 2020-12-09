@@ -103,12 +103,11 @@ class Trainer:
         self.history['loss']['val'] = []
         self.history['loss']['test'] = []
 
-    def hyp_opt(self, optimizer_class, epochs=1, iters=10):
+    def hyp_opt(self, epochs=1, iters=10):
         """
         Repeatedly call train for a short number of epochs to measure the effectiveness of each hyperparameter combination
 
         Args:
-            optimizer_name(torch.optim): The class of the optimizer to use
             epochs(int): The number of epochs to train for per combination
             iters(int): Number of times to sample hyperparameters
         """
@@ -117,14 +116,12 @@ class Trainer:
         if os.path.isdir(hyp_dir):
             shutil.rmtree(hyp_dir)
         os.mkdir(hyp_dir)
-        # Store the local default model
-        local_model = self.model
         # For iters
         for iter in range(iters):
             # Sample hyperparameters
             sample = self.hyp.sample()
-            # Set the optimizer
-            self.set_optimizer(optimizer_class, sample)
+            # Create the model and obtain the hyperparameter sample
+            sample = self.create_model()
             # Train a model
             self.train(epochs=epochs, opt=sample)
             # Write to TensorBoard
@@ -132,8 +129,7 @@ class Trainer:
             writer = SummaryWriter(path)
             writer.add_hparams(sample, {'train': self.history['loss']['train'][epochs-1], 'val': self.history['loss']['val'][epochs-1]})
             writer.close()
-            # Reset histories and model
-            self.model = local_model
+            # Reset histories
             self.init_history()
 
     def train(self, epochs=1, update_every=0, save_every=0, opt=None):
@@ -170,8 +166,10 @@ class Trainer:
             shutil.rmtree(self.paths['checkpoints'])
         os.mkdir(self.paths['checkpoints'])
 
-        # Instantiate a model to train and move it to the device
-        self.create_model()
+        # Instantiate a model to train if not optimizing for hyperparameters
+        # Otherwise, assume creation was done by the hyp_opt function
+        if opt is None:
+            self.create_model()
         for e in range(epochs):
         #   If first epoch, get initial evaluations
             if e == 0:
@@ -314,6 +312,10 @@ class Trainer:
     def create_object(self, object_type=None):
         """
         Helper function to create objects within the trainer
+
+        Returns: (object, sample): object: an instantiation of the object_type
+                                 : sample: a sample from the hyperparameter object if it exists
+                                           otherwise, returns None
         """
         # First parse the object type
         obj_class, args, kwargs, hyp = None, None, None, None
@@ -361,11 +363,14 @@ class Trainer:
                 ret_obj = obj_class(*args, **param_sample)
             else:
                 ret_obj = obj_class(*args, **kwargs)
-        return ret_obj
+        return ret_obj, param_sample
     def create_model(self):
         """
         Creates an instantiation of the model using the given hyperparameters and the primed
         hyperparameters
+
+        Returns: hyperparameters(dict{hyp:val}): dictionary of hyperparameters for the optimizer
+                                                 and model
         """
         # If the model has not been primed and no hyperparameter object has been provided, throw error
         if self.model_args is None and self.model_kwargs is None and self.arch_hyp is None:
@@ -373,25 +378,38 @@ class Trainer:
             sys.exit(1)
         
         # Create a model
-        self.model = self.create_object(object_type='model')
+        self.model, model_hyp = self.create_object(object_type='model')
         self.model.to(self.device)
 
         # Then, instantiate the optimizer
-        self.create_optimizer()
+        optim_hyp = self.create_optimizer()
 
         # Optionally, if using a scheduler, instantiate a scheduler
-        self.create_scheduler()
+        if self.scheduler_class is not None:
+            self.create_scheduler()
+
+        # Find non-none hyperparameter samples and update
+        hyp = {}
+        if model_hyp is not None:
+            hyp.update(model_hyp)
+        if optim_hyp is not None:
+            hyp.update(optim_hyp)
+        
+        return hyp
     def create_optimizer(self):
         """
         Creates an instantiation of an optimizer using the given hyperparameters and the primed
         hyperparameters
+
+        Returns: optim_hyp(dict{hyp:val}): dictionary of hyperparameters for the optimizer
         """
         # If the optimizer was not primed and no optimizer hyperparameters were provided, throw error
         if self.optimizer_args is None and self.optimizer_kwargs is None and self.hyp is None:
             print('ERR: Optimizer not primed')
             sys.exit(1)
         
-        self.optimizer = self.create_object(object_type='optim')
+        self.optimizer, optim_hyp = self.create_object(object_type='optim')
+        return optim_hyp
     def create_scheduler(self):
         """
         Creates an instantiation of scheduler using the primed hyperparameters
